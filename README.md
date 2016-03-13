@@ -1,2 +1,2 @@
-# missile-state-estimation
-Missile State Estimation
+# ucla-mae-271b-project
+UCLA MAE 271B Project for Missile State Estimation
