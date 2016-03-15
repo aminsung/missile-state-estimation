@@ -7,6 +7,15 @@ __date__ = "13 MAR 2016"
 
 
 # ============================================================================
+# Global Configurations
+# ============================================================================
+display_plot = False
+display_plot = True
+single_run_plot = False
+single_run_plot = True
+
+
+# ============================================================================
 # Global Constants
 # ============================================================================
 V_C = 300.0  # [ft/sec]
@@ -48,14 +57,13 @@ at_init = np.random.normal(0.0, np.sqrt(A_VAR))
 
 N_MEAN = 0.0
 N_VAR = V_init/DT
-n_init = np.random.normal(N_MEAN, np.sqrt(N_VAR))
+n = np.random.normal(N_MEAN, np.sqrt(N_VAR))  # Noise
 
 W_at = np.random.normal(A_MEAN, np.sqrt(A_VAR/DT))
 
 
 # ============================================================================
 # Kalman Filter
-# Status: WIP
 # ============================================================================
 P_init = np.array([[0.0, 0.0, 0.0],
                    [0.0, 200.0**2, 0.0],
@@ -68,27 +76,67 @@ dx_hat_history = np.zeros((3, 1, T.size))
 x_history = np.zeros((3, 1, T.size))
 dx_history = np.zeros((3, 1, T.size))
 err_history = np.zeros((3, 1, T.size))
-residual = np.zeros((2, 1))
+residual = np.zeros((1, T.size))
 
 P_history[:, :, 0] = P_init
 K_history[:, :, 0] = np.dot(P_init, H_init.transpose())*(V_init**(-1))
 
-# Initialize ACTUAL states
+# Initialize actual states
 x_history[:, :, 0] = np.array([[y_init], [v_init], [at_init]])
 dx_history[:, :, 0] = np.dot(F, x_history[:, :, 0]) + np.dot(G, W_at)
-Z[0] = np.dot(H_init, x_history[:, :, 0]) + n_init  # z = theta + n
+Z_history[0] = np.dot(H_init, x_history[:, :, 0]) + n  # z = theta + n
 
-# Estimate states
+# Initialize estimate states
 x_hat_history[:, :, 0] = np.array([[0, 0, 0]]).transpose()
-dx_hat_history[:, :, 0] = np.dot(F, x_hat_history[:, :, 1]) + \
-                          K_history[:, :, 0]*(Z_history[0] - \
-                                              np.dot(H_init, x_hat_history[:, :, 1]))
+dx_hat_history[:, :, 0] = np.dot(F, x_hat_history[:, :, 0]) + \
+                          K_history[:, :, 0] * \
+                          (Z_history[0] - np.dot(H_init, x_hat_history[:, :, 0]))
 err_history[:, :, 0] = np.array([[0, 0, 0]]).transpose()
 
+for idx in range(0, len(T)-1):
+    H = np.array([[1.0/(V_C*(T_F-T[idx])), 0.0, 0.0]])
+    V = R1 + (R2/((T_F-T[idx])**2))
+
+    # Update Variance
+    P_dot = np.dot(F, P_history[:, :, idx]) + \
+            np.dot(P_history[:, :, idx], F.transpose()) - \
+            np.dot(np.dot(np.dot(np.dot(P_history[:, :, idx], H.transpose()), V**(-1)), H), P_history[:, :, idx]) + \
+            np.dot(np.dot(G, W), G.transpose())
+    P_history[:, :, idx+1] = P_history[:, :, idx] + P_dot*DT
+
+    # Update Kalman Gain
+    K_history[:, :, idx+1] = np.dot(P_history[:, :, idx], H.transpose())*(V_init**(-1))
+
+    # Update with new iteration of noise
+    n = np.random.normal(N_MEAN, np.sqrt(V/DT))
+    W_at = np.random.normal(A_MEAN, np.sqrt(A_VAR/DT))
+
+    # Update actual states
+    dx_history[:, :, idx+1] = np.dot(F, x_history[:, :, idx]) + \
+                              np.dot(G, W_at)
+    x_history[:, :, idx+1] = x_history[:, :, idx] + dx_history[:, :, idx+1]*DT
+    Z_history[idx+1] = np.dot(H, x_history[:, :, idx+1]) + n
+
+    # Update estimate states
+    dx_hat_history[:, :, idx+1] = np.dot(F, x_hat_history[:, :, idx]) + \
+                                  K_history[:, :, idx+1] * \
+                                  (Z_history[idx+1] - np.dot(H, x_hat_history[:, :, idx]))
+    x_hat_history[:, :, idx+1] = x_hat_history[:, :, idx] + dx_hat_history[:, :, idx+1]*DT
+
+    # Residual & Error
+    # dr(t) = dz(t) - H(t)*xhat(t)*dt)
+    residual[:, idx+1] = Z_history[idx+1] - \
+                         np.dot(H, x_hat_history[:, :, idx+1])
+    err_history[:, :, idx+1] = x_hat_history[:, :, idx+1] - x_history[:, :, idx+1]
 
 
+# ============================================================================
+# Plots
+# ============================================================================
+if display_plot and single_run_plot:
+    plt.figure(1)
 
-
+    plt.subplot()
 
 
 
