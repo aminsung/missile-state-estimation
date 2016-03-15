@@ -41,9 +41,9 @@ V_VAR = 200.0**2
 # ============================================================================
 F = np.array([[0.0, 1.0, 0.0],
               [0.0, 0.0, -1.0],
-              [0.0, 0.0, -(1/TAU)]])
-B = np.array([[0], [1], [0]])
-G = np.array([[0], [0], [1]])
+              [0.0, 0.0, -(1.0/TAU)]])
+B = np.array([[0.0], [1.0], [0.0]])
+G = np.array([[0.0], [0.0], [1.0]])
 
 
 # ============================================================================
@@ -79,7 +79,7 @@ err_history = np.zeros((3, 1, T.size))
 residual = np.zeros((1, T.size))
 
 P_history[:, :, 0] = P_init
-K_history[:, :, 0] = np.dot(P_init, H_init.transpose())*(V_init**(-1))
+K_history[:, :, 0] = np.dot(np.dot(P_init, H_init.transpose()), (V_init**(-1)))
 
 # Initialize actual states
 x_history[:, :, 0] = np.array([[y_init], [v_init], [at_init]])
@@ -89,8 +89,8 @@ Z_history[0] = np.dot(H_init, x_history[:, :, 0]) + n  # z = theta + n
 # Initialize estimate states
 x_hat_history[:, :, 0] = np.array([[0, 0, 0]]).transpose()
 dx_hat_history[:, :, 0] = np.dot(F, x_hat_history[:, :, 0]) + \
-                          K_history[:, :, 0] * \
-                          (Z_history[0] - np.dot(H_init, x_hat_history[:, :, 0]))
+                          np.dot(K_history[:, :, 0], \
+                          (Z_history[0] - np.dot(H_init, x_hat_history[:, :, 0])))
 err_history[:, :, 0] = np.array([[0, 0, 0]]).transpose()
 
 for idx in range(0, len(T)-1):
@@ -102,10 +102,10 @@ for idx in range(0, len(T)-1):
             np.dot(P_history[:, :, idx], F.transpose()) - \
             np.dot(np.dot(np.dot(np.dot(P_history[:, :, idx], H.transpose()), V**(-1)), H), P_history[:, :, idx]) + \
             np.dot(np.dot(G, W), G.transpose())
-    P_history[:, :, idx+1] = P_history[:, :, idx] + P_dot*DT
+    P_history[:, :, idx+1] = P_history[:, :, idx] + np.dot(P_dot, DT)
 
     # Update Kalman Gain
-    K_history[:, :, idx+1] = np.dot(P_history[:, :, idx], H.transpose())*(V_init**(-1))
+    K_history[:, :, idx+1] = np.dot(np.dot(P_history[:, :, idx], H.transpose()), (V**(-1)))
 
     # Update with new iteration of noise
     n = np.random.normal(N_MEAN, np.sqrt(V/DT))
@@ -133,11 +133,17 @@ for idx in range(0, len(T)-1):
 # ============================================================================
 # Plots
 # ============================================================================
-if display_plot and single_run_plot:
+print("Printing plots...")
+if display_plot == 1 and single_run_plot == 1:
     plt.figure(1)
-
-    plt.subplot()
-
+    plt.title('Kalman Gains')
+    plt.plot(T, K_history[0, :, :].transpose())
+    plt.plot(T, K_history[1, :, :].transpose())
+    plt.plot(T, K_history[2, :, :].transpose())
+    plt.ylabel('Gain')
+    plt.xlabel('Time [s]')
+    plt.tight_layout()
+    plt.show()
 
 
 print("Missile State Estimation Done")
