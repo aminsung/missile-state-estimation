@@ -17,7 +17,7 @@ display_plot = True
 single_run_plot = False
 single_run_plot = True
 
-number_of_simulations = 2
+number_of_simulations = 1000
 
 
 # ============================================================================
@@ -115,7 +115,8 @@ for jdx in range(0, number_of_simulations):
         # Update Variance
         P_dot = np.dot(F, P_history[:, :, idx]) + \
                 np.dot(P_history[:, :, idx], F.transpose()) - \
-                np.dot(np.dot(np.dot(np.dot(P_history[:, :, idx], H.transpose()), V**(-1)), H), P_history[:, :, idx]) + \
+                np.dot(np.dot(np.dot(np.dot(P_history[:, :, idx], \
+                H.transpose()), V**(-1)), H), P_history[:, :, idx]) + \
                 np.dot(np.dot(G, W), G.transpose())
         P_history[:, :, idx+1] = P_history[:, :, idx] + np.dot(P_dot, DT)
 
@@ -211,7 +212,8 @@ res_chk = 0
 for adx in range(0, number_of_simulations):
     res_chk = res_chk + np.dot(RESIDUAL_DS[:, 40, adx], RESIDUAL_DS[:, 500, adx].transpose())
     for bdx in range(0, T.size):
-        P_AVG_DS[:, :, bdx] = P_AVG_DS[:, :, bdx] + np.dot((ERROR_DS[:, :, bdx, adx] - error_average[:, :, bdx]), (ERROR_DS[:, :, bdx, adx] - error_average[:, :, bdx]).transpose())
+        P_AVG_DS[:, :, bdx] = P_AVG_DS[:, :, bdx] + np.dot((ERROR_DS[:, :, bdx, adx] - \
+                error_average[:, :, bdx]), (ERROR_DS[:, :, bdx, adx] - error_average[:, :, bdx]).transpose())
 
 _res_chk = res_chk / number_of_simulations
 res_chk = _res_chk
